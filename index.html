@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>bdev — Bruno Antonio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* =========================================================
+     TOKENS — ajuste aqui as cores e medidas principais
+     ========================================================= */
+  :root{
+    --black:#0a0a0a;
+    --ink:#111;
+    --white:#f4f4f2;
+    --gray-100:#e6e6e3;
+    --gray-300:#bdbdb9;
+    --gray-500:#7a7a76;
+    --gray-700:#2a2a2a;
+    --line:rgba(255,255,255,.12);
+    --header-h:clamp(150px, 26vh, 230px);
+    --aside-w:clamp(200px, 22vw, 280px);
+    --radius:14px;
+    --slide-ms:3000;           /* tempo do autoplay (ms) – lido pelo JS */
+    --font-logo:'Syne', sans-serif;
+    --font-body:'Inter', system-ui, sans-serif;
+    --font-mono:'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font-body);
+    background:var(--black);
+    color:var(--white);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* textura de granulação sobre toda a página (estética "film grain") */
+  body::after{
+    content:"";position:fixed;inset:-50%;pointer-events:none;z-index:100;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E");
+    opacity:.07;mix-blend-mode:overlay;
+    animation:grain 1.2s steps(6) infinite;
+  }
+  @keyframes grain{
+    0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}
+    60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}
+  }
+
+  .page{
+    display:grid;
+    grid-template-columns:var(--aside-w) 1fr;
+    grid-template-rows:var(--header-h) 1fr;
+    grid-template-areas:"header header" "aside main";
+    height:100vh;height:100dvh;
+  }
+
+  /* =========================================================
+     HEADER — imagem que se apaga + logo BDEV
+     ========================================================= */
+  .header{
+    grid-area:header;position:relative;overflow:hidden;
+    display:grid;grid-template-columns:1fr 1fr;
+    background:var(--black);
+    border-bottom:1px solid var(--line);
+  }
+  .header__photo{
+    position:relative;overflow:hidden;
+    /* o "apagar" da imagem: máscara que vai ao transparente à direita */
+    -webkit-mask-image:linear-gradient(90deg,#000 0%,#000 35%,rgba(0,0,0,.55) 65%,transparent 100%);
+            mask-image:linear-gradient(90deg,#000 0%,#000 35%,rgba(0,0,0,.55) 65%,transparent 100%);
+  }
+  /* a imagem preenche 100% da área, sem espaços nas bordas */
+  .header__photo img{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    object-fit:cover;object-position:center 30%;
+    display:block;margin:0;padding:0;border:0;
+  }
+
+  .header__brand{
+    position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:.4rem;
+  }
+  .logo{
+    font-family:var(--font-logo);font-weight:800;
+    font-size:clamp(3rem,7.5vw,6.2rem);line-height:.9;letter-spacing:-.04em;
+    color:var(--white);
+    position:relative;
+    text-shadow:0 0 40px rgba(255,255,255,.15);
+  }
+  .logo .dot{display:inline-block;width:.16em;height:.16em;background:var(--white);border-radius:50%;margin-left:.04em;animation:blink 1.6s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .header__tag{
+    font:400 11px/1 var(--font-mono);letter-spacing:.3em;text-transform:uppercase;color:var(--gray-500);
+  }
+  .header__meta{
+    position:absolute;top:14px;right:18px;
+    font:400 10px/1.5 var(--font-mono);color:var(--gray-500);text-align:right;letter-spacing:.08em;
+  }
+  .header__meta .live{display:inline-block;width:6px;height:6px;border-radius:50%;background:#e9e9e9;margin-right:6px;box-shadow:0 0 8px #fff;vertical-align:middle}
+
+  /* =========================================================
+     ASIDE — contatos
+     ========================================================= */
+  .aside{
+    grid-area:aside;
+    background:#fff;
+    color:var(--ink);
+    padding:28px 20px;
+    display:flex;flex-direction:column;gap:12px;
+    position:relative;
+    border-right:1px solid #000;
+  }
+  .aside__label{
+    font:500 10px/1 var(--font-mono);letter-spacing:.25em;text-transform:uppercase;color:#555;
+    padding:0 2px 6px;
+  }
+  .aside__label--top{
+    font-family:var(--font-logo);font-weight:700;
+    font-size:clamp(1.3rem,1.8vw,1.6rem);letter-spacing:-.02em;text-transform:none;
+    color:var(--ink);margin-bottom:10px;
+  }
+  .contact{
+    display:flex;align-items:center;gap:12px;
+    background:#3b3b3b;color:var(--white);
+    text-decoration:none;
+    padding:12px 14px;border-radius:6px;
+    font:500 14px/1 var(--font-body);
+    border:1px solid #000;
+    box-shadow:3px 3px 0 #0a0a0a;
+    transition:transform .15s ease, box-shadow .15s ease, background .2s;
+    cursor:pointer;
+  }
+  .contact svg{width:18px;height:18px;flex:none}
+  .contact .arrow{margin-left:auto;opacity:.5;font-family:var(--font-mono);transition:transform .2s, opacity .2s}
+  .contact:hover{background:#0a0a0a;transform:translate(-2px,-2px);box-shadow:5px 5px 0 #0a0a0a}
+  .contact:hover .arrow{opacity:1;transform:translateX(3px)}
+  .contact:active{transform:translate(2px,2px);box-shadow:0 0 0 #0a0a0a}
+  .contact--primary{background:#111;padding:16px 14px}
+
+  .aside__foot{
+    margin-top:auto;
+    font:400 10px/1.6 var(--font-mono);color:#555;letter-spacing:.05em;
+    border-top:1px dashed #9a9a96;padding-top:12px;
+  }
+  .toast{
+    position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;
+    background:var(--white);color:var(--ink);padding:10px 16px;border-radius:999px;
+    font:500 12px/1 var(--font-mono);z-index:200;transition:.25s;pointer-events:none;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  /* =========================================================
+     MAIN — carrossel de conteúdo
+     ========================================================= */
+  .main{
+    grid-area:main;position:relative;overflow:hidden;
+    background:
+      radial-gradient(ellipse 70% 60% at 85% 20%, rgba(255,255,255,.10), transparent 60%),
+      radial-gradient(ellipse 50% 50% at 10% 100%, rgba(255,255,255,.05), transparent 60%),
+      linear-gradient(135deg,#050505 0%,#141414 55%,#0a0a0a 100%);
+  }
+  /* grade de fundo bem sutil */
+  .main::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:56px 56px;opacity:.25;
+    -webkit-mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%);
+            mask-image:radial-gradient(ellipse at center,#000 30%,transparent 80%);
+  }
+
+  .track{position:absolute;inset:0}
+  .slide{
+    position:absolute;inset:0;
+    display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);align-items:center;gap:clamp(24px,5vw,72px);
+    padding:clamp(24px,4vh,48px) clamp(72px,8vw,120px);
+    opacity:0;visibility:hidden;
+    transform:translateX(30px);filter:blur(6px);
+    transition:opacity .6s ease, transform .6s cubic-bezier(.2,.7,.2,1), filter .6s ease, visibility 0s .6s;
+  }
+  .slide.is-active{opacity:1;visibility:visible;transform:none;filter:none;transition-delay:0s}
+  .slide.is-leaving{transform:translateX(-30px)}
+
+  .slide__eyebrow{
+    font:500 11px/1 var(--font-mono);letter-spacing:.25em;text-transform:uppercase;color:var(--gray-500);
+    margin-bottom:14px;display:flex;align-items:center;gap:10px;
+  }
+  .slide__eyebrow::before{content:"";width:22px;height:1px;background:var(--gray-500)}
+  .slide h2{
+    font-family:var(--font-logo);font-weight:700;
+    font-size:clamp(1.5rem,2.6vw,2.2rem);letter-spacing:-.02em;margin-bottom:6px;
+  }
+  .slide h3{
+    font:600 clamp(1rem,1.5vw,1.2rem)/1.2 var(--font-body);color:var(--gray-300);margin:10px 0 12px;
+  }
+  .slide p{
+    font-size:clamp(.88rem,1.05vw,.98rem);line-height:1.7;color:#cfcfcb;max-width:56ch;
+  }
+  .slide p + p{margin-top:12px}
+  .slide strong{color:var(--white);font-weight:600}
+
+  .tags{display:flex;flex-wrap:wrap;gap:8px;margin:20px 0 18px}
+  .tag{
+    background:var(--white);color:var(--ink);
+    font:500 11px/1 var(--font-mono);padding:7px 10px;border-radius:4px;letter-spacing:.03em;
+  }
+  .link{
+    display:inline-flex;align-items:center;gap:8px;
+    color:var(--white);text-decoration:none;font:500 14px/1 var(--font-body);
+    border-bottom:1px solid var(--gray-500);padding-bottom:4px;transition:gap .2s,border-color .2s;
+  }
+  .link:hover{gap:14px;border-color:var(--white)}
+
+  /* cartão de imagem branco */
+  .card{
+    justify-self:center;
+    width:min(100%,360px);aspect-ratio:4/5;max-height:calc(100% - 20px);
+    background:var(--white);border-radius:var(--radius);
+    position:relative;overflow:hidden;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.4), 12px 12px 0 -1px rgba(255,255,255,.06);
+  }
+  .card img{width:100%;height:100%;object-fit:cover;display:block}
+  .card__ph{
+    position:absolute;inset:0;display:grid;place-items:center;
+    background:
+      repeating-linear-gradient(45deg,#ececea 0 10px,#f4f4f2 10px 20px);
+    color:#9a9a96;font:500 11px/1.4 var(--font-mono);letter-spacing:.15em;text-transform:uppercase;text-align:center;
+  }
+  .card__ph svg{width:46px;height:46px;margin:0 auto 10px;display:block;opacity:.6}
+  .card__label{
+    position:absolute;left:12px;bottom:12px;
+    background:var(--ink);color:var(--white);
+    font:500 10px/1 var(--font-mono);padding:6px 8px;border-radius:3px;letter-spacing:.1em;
+  }
+
+  /* botões de navegação (círculos brancos laterais) */
+  .nav{
+    position:absolute;top:50%;transform:translateY(-50%);z-index:5;
+    width:44px;height:44px;border-radius:50%;
+    background:var(--white);color:var(--ink);border:none;cursor:pointer;
+    display:grid;place-items:center;
+    box-shadow:0 0 0 6px rgba(255,255,255,.06);
+    transition:transform .2s, box-shadow .2s;
+  }
+  .nav svg{width:18px;height:18px}
+  .nav:hover{transform:translateY(-50%) scale(1.08);box-shadow:0 0 0 10px rgba(255,255,255,.08)}
+  .nav:active{transform:translateY(-50%) scale(.95)}
+  .nav--prev{left:18px}
+  .nav--next{right:18px}
+  .nav:focus-visible,.contact:focus-visible,.dot-btn:focus-visible{outline:2px solid #fff;outline-offset:3px}
+
+  /* rodapé do carrossel: contador, pontos e barra de progresso */
+  .hud{
+    position:absolute;left:clamp(72px,8vw,120px);right:clamp(72px,8vw,120px);bottom:18px;z-index:5;
+    display:flex;align-items:center;gap:16px;
+    font:500 11px/1 var(--font-mono);color:var(--gray-500);letter-spacing:.1em;
+  }
+  .hud .count b{color:var(--white);font-weight:500}
+  .dots{display:flex;gap:6px}
+  .dot-btn{width:8px;height:8px;border-radius:50%;border:1px solid var(--gray-500);background:transparent;cursor:pointer;transition:.25s;padding:0}
+  .dot-btn.is-active{background:var(--white);border-color:var(--white);width:22px;border-radius:999px}
+  .progress{flex:1;height:1px;background:var(--line);position:relative;overflow:hidden}
+  .progress i{position:absolute;inset:0;background:var(--white);transform-origin:left;transform:scaleX(0)}
+  .pause-ind{min-width:56px;text-align:right}
+
+  /* =========================================================
+     RESPONSIVO
+     ========================================================= */
+  @media (max-width: 860px){
+    body{overflow:auto}
+    .page{
+      height:auto;min-height:100dvh;
+      grid-template-columns:1fr;
+      grid-template-rows:auto auto 1fr;
+      grid-template-areas:"header" "aside" "main";
+    }
+    .header{height:170px}
+    .aside{flex-direction:row;flex-wrap:wrap;padding:14px;border-right:none;border-bottom:1px solid #000}
+    .aside__label,.aside__foot{display:none}
+    .contact{flex:1 1 calc(50% - 6px);padding:10px 12px;font-size:13px}
+    .main{min-height:640px}
+    .slide{grid-template-columns:1fr;align-content:center;padding:28px 64px 70px;gap:22px}
+    .card{width:min(100%,240px);aspect-ratio:4/3;order:-1}
+    .nav{width:38px;height:38px}
+    .nav--prev{left:12px}.nav--next{right:12px}
+    .hud{left:20px;right:20px}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ================= HEADER ================= -->
+  <header class="header">
+    <div class="header__photo" id="headerPhoto">
+      <!-- Troque pelo caminho da sua foto: <img src="img/header.jpg" alt="Bruno Antonio"> -->
+      <img src="images/header.jpg" alt="Bruno Antonio">
+    </div>
+    <div class="header__brand">
+      <h1 class="logo" aria-label="bdev">bdev<span class="dot"></span></h1>
+      <span class="header__tag">dev · repositório pessoal</span>
+    </div>
+  </header>
+
+  <!-- ================= ASIDE ================= -->
+  <aside class="aside" aria-label="Contatos">
+    <h2 class="aside__label aside__label--top">Contatos</h2>
+
+    <a class="contact contact--primary" href="https://www.linkedin.com/in/brunoantonioalexandrinodasilva/" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.75h4v11H3v-11zm6.5 0h3.8v1.6h.06c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.77 2.6 4.77 6v5.45h-4v-4.83c0-1.15-.02-2.63-1.6-2.63-1.6 0-1.85 1.25-1.85 2.55v4.91h-4v-11z"/></svg>
+      LinkedIn <span class="arrow">↗</span>
+    </a>
+
+    <a class="contact" href="https://github.com/bdev16" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.33-1.28-1.69-1.28-1.69-1.05-.71.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.68 0-1.26.45-2.28 1.19-3.09-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.78 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.83 1.19 3.09 0 4.41-2.69 5.38-5.26 5.67.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>
+      GitHub <span class="arrow">↗</span>
+    </a>
+
+    <a class="contact" href="mailto:seuemail@exemplo.com" data-copy="seuemail@exemplo.com">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+      E-mail <span class="arrow">⧉</span>
+    </a>
+
+    <a class="contact" href="https://buscatextual.cnpq.br/buscatextual/visualizacv.do?id=K1593202J7&tokenCaptchar=0cAFcWeA7HRkccmyRhqX_qDfULK464wCzL8Q3o-rkcpzYLrzprC93RnNTXERSV2chy653MDnVNaMTNscfuPDL-Aan3VYEoJ4la8RlSp7i3jJZorlYMAcynVtRne4jc_9_6HwMTYIKb1VL8q-iYafz3DkTIGFRvhvGnRPffwsKwXqjSdz7yQOQ0LyUFLewLNPZ1NJBc_YqSWpuzqDXMTg2qNgR33pQVt5ZpHkv1kR19n3I7Ln16WcTZNjogugwNjLJ2ROGBj7TwyA_pQyQyYfP0jfqtUCWYQj2vP-q_IEYRpMshHn_VUUViuD3ULGmWIKKPV4xplk3U2IBYa7C_Z2gI_LoBXsCmhS_w75urRyc46_WE2kYLVYBThzkxuwK6MqtcKAtA11bv4xBPkLzOdaozT-ExexboprcZk_OKf1rSl5VRNqKHFVGrJ_GZoEFo84rIPpKAviQ6HhFQMhQpH-Zfr0uDvqcgkmNY-HcfJu1OeG3oLk6pQvp4kdRwTB5x50qFZyozAAcb15zVZOyFIYH8QK-54-FyVzNqRVh6GNI9Sqddxjiic1Y7rBJf2hbUQ-LZWca86H6ruCybFl69zv7mi43iG4yRFij1PdJ_yske5o41SGazVPucoqhcbxPUTWcrjyhimjvMhhcbNU1CBfulMOXu7XjYZCj3LQAQNHiUPIG_un4k61lhMSyY4mj5B7dpUmMY66oIfSj-45Cw1j_WWDru_3B3cE-JJY5YnhcA2hFf-EAkyFbe6rsIzjD1aO5Xg9gn_7obYv32phvvUmdOB5w9lMkslnTpH0yjbuEuC9MqOCd1vxusoizsZCAPfF46b3Zp8BKlmaEqxCHCgUCR-cL0RFbg8kbJoc5WkZ7T1pVXmb-TS8vsvf0ptX62KtNKUy2wU_TIEsCRyBTKQqEX8kh67s9w1BfSBcXJsi0D0qkn3xLbZzrHj-ovMsHPsrqgPzGONM_e8noFWNFZx5UmTifE84IayTTJaypsFn3EMc5LsL4EOqHLjVPRRXO80uwTGLeI4sR5vnUbglBuvXizbGCXOekE4XMM6q27CyUAUhDGpk0ARdWAJ40RHoX_zX5pbpT_SPeZ_J267AEz1pTSPkDoCxn9_l3WzMWg8BQRktwB1U5tcYKTjzTPZip6EC0O1eExInCwvoFgNHGX1jOdGoZHQB6-_EFuRQpNQbSC8CQ0wAL_dRQ9_bQTHVhTxc1Nf1x0aSUNMkqfjDuxpJ3fJP51cWHvAiwrHsFJUImg28fhewD_Ror3XKBkrFV7bBkmiQdxFPFutcSo12okWOlhKGWBPCSCuZQlSy2A7vWtjS8bRqYolaSkgPskIsbwbLYm5KoM-p2ovZ4O_5wKI16M26dkbM00v0jNT0x9MFsE2pflFoCjpLoRcCYjazDEVJTcz28cJtl2To18yuDjO3Ix0DnKrbJWIgl6xjaOa8cNY4l783Zw5m3Tr2t7KJSrgYIbzqsA1fvYIPrJKJaczd64VtGhF_JsO8ew75qXS_qImgU_uk9HXWLgxBxh0HSzpHu0iLBp0TW7QT_wUzriJ78TGXsCkXnWxctFQLeO77TM83l1LiURxPJ1-ywIg5E0qxgVGbD1k_dCIbypDCyUVmty2b0p52GVZwUIW0JKNpUql6z4O_HT47DuOSIrfDXZ_0BWMXWLtSTTjK6_Ji2xseIO9OXLeBSe5hJwzyNibXhM94tJKPDWSG13kjZdcXXaf6KgSO5_h3KC2T0y1C_9QLEH5jJBMbtD_CoArnycg1RhX3RuO25TwLRe3tPrcV1yrkezekd-8orGQLnwuPFR3LvV8My6JP2qGM7OsQdvmhb2ALUOREJuMjp_Jy6kkMpE3Kg4RksEdG87s1b9P0XxPc1hsMGeTwkTy9Tuk435S0_8FZOL0Zk6RXkSIBvusI3-I2HsHNk2Y8ruUg57CvhhYYwUnoeBDqgDoQyzEBs-pMWrSVukV2H-VSOS3in7wzaFogCLSCcuaZJaNxMLRqhc18SitHTmN2ED6s9wOpME2a9x8_UEjuBSWEZvlyo0KBzyrFVnKS1FJ2nHZwKATgynS2Pg0AVN7oVwCibZtmH0jUIYr2uRs3J38EuuOI0UjDfEJpIKQgOPDwCMviU-t7j6wJkOcXP799HLjHaAmxVi9rgMo915vz8OgniWpsIim0wXGnWBbhwX_81TeHKfaAric4YKVu-Bq0-aoP_keXQuIcjd2-Jn2XTxywM--K8Iczynz7dngqSmoC1woDIdngoGoTr7dewcUxJHRKvJNZ7Ve4u_4uG4YGLi8c9k91gcAUob5f1-xJazHqN6Mm_alft_AwJWJ2RXbC8gGyN8RmY6aAm8MVeyo5ngQXVwiKEAb9yfTQ_ewOX0PngNFpeNyHuJGFsSFI3Q_p1UdMARMw" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>
+      Currículo <span class="arrow">↓</span>
+    </a>
+
+    <div class="aside__foot">
+      © <span id="year"></span> bdev
+    </div>
+  </aside>
+
+  <!-- ================= CONTEÚDO (carrossel) ================= -->
+  <main class="main" id="carousel" aria-roledescription="carrossel">
+    <button class="nav nav--prev" id="prev" aria-label="Anterior">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+    <button class="nav nav--next" id="next" aria-label="Próximo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+
+    <div class="track" id="track"><!-- slides gerados pelo JS --></div>
+
+    <div class="hud">
+      <span class="count"><b id="cur">01</b> / <span id="tot">00</span></span>
+      <div class="dots" id="dots"></div>
+      <div class="progress"><i id="bar"></i></div>
+      <span class="pause-ind" id="state">auto</span>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast">e-mail copiado ✓</div>
+
+<script>
+/* =========================================================
+   CONTEÚDO — edite aqui. Cada objeto vira uma "página".
+   type: 'about' ou 'project'
+   image: caminho da imagem (ex.: 'img/projeto1.png') ou '' para placeholder
+   ========================================================= */
+const SLIDES = [
+  {
+    type: 'about',
+    eyebrow: '00 — intro',
+    title: 'Sobre Mim',
+    text: [
+      'Olá, meu nome é <strong>Bruno Antonio</strong>, sou formado no curso de Análise e Desenvolvimento de Sistemas pela Faculdade Católica Imaculada Conceição do Recife (2024), por meio do programa <strong>Embarque Digital</strong>, disponibilizado pela Prefeitura do Recife em parceria com o Porto Digital.',
+      'Me considero uma pessoa amigável, que gosta de trabalhar em equipe, contribuir para a resolução de problemas, adquirir novos conhecimentos e que consegue se adaptar a diferentes ambientes.'
+    ],
+    image: 'images/imageSobreMim.jpg',
+    label: 'foto.jpg'
+  },
+  {
+    type: 'project',
+    eyebrow: '01 — projetos',
+    title: 'Projetos',
+    subtitle: 'Título do Projeto 1',
+    text: ['Descrição curta do projeto: qual problema resolve, qual foi o seu papel e o que você aprendeu. Duas ou três frases bastam para despertar interesse.'],
+    tags: ['HTML', 'CSS', 'JavaScript', 'Node'],
+    link: 'https://github.com/SEU-USUARIO/projeto-1',
+    image: '',
+    label: 'projeto_01.png'
+  },
+  {
+    type: 'project',
+    eyebrow: '02 — projetos',
+    title: 'Projetos',
+    subtitle: 'Título do Projeto 2',
+    text: ['Is a classical Latin-based placeholder text used in printing, typesetting, and digital design to simulate real content without distracting from layout or formatting.'],
+    tags: ['Python', 'Django', 'SQL', 'Docker'],
+    link: 'https://github.com/SEU-USUARIO/projeto-2',
+    image: '',
+    label: 'projeto_02.png'
+  },
+  {
+    type: 'project',
+    eyebrow: '03 — projetos',
+    title: 'Projetos',
+    subtitle: 'Título do Projeto 3',
+    text: ['Espaço para mais um projeto. Você pode adicionar quantas páginas quiser: basta copiar um bloco deste array.'],
+    tags: ['React', 'TypeScript', 'API', 'Figma'],
+    link: 'https://github.com/SEU-USUARIO/projeto-3',
+    image: '',
+    label: 'projeto_03.png'
+  }
+];
+
+
+/* ========================================================= */
+const $ = s => document.querySelector(s);
+const track = $('#track'), dotsEl = $('#dots'), bar = $('#bar');
+const DURATION = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--slide-ms')) || 3000;
+
+const imgIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>';
+
+function cardHTML(s){
+  const media = s.image
+    ? `<img src="${s.image}" alt="${s.subtitle || s.title}">`
+    : `<div class="card__ph"><div>${imgIcon}imagem</div></div>`;
+  return `<div class="card">${media}<span class="card__label">${s.label || ''}</span></div>`;
+}
+
+function slideHTML(s){
+  const paras = s.text.map(t => `<p>${t}</p>`).join('');
+  const body = s.type === 'project'
+    ? `<h2>${s.title}</h2><h3>${s.subtitle}</h3>${paras}
+       <div class="tags">${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+       <a class="link" href="${s.link}" target="_blank" rel="noopener">Clique aqui <span>→</span></a>`
+    : `<h2>${s.title}</h2>${paras}`;
+  return `<article class="slide" role="group" aria-roledescription="slide">
+            <div>${body}</div>
+            ${cardHTML(s)}
+          </article>`;
+}
+
+track.innerHTML = SLIDES.map(slideHTML).join('');
+dotsEl.innerHTML = SLIDES.map((_,i)=>`<button class="dot-btn" aria-label="Ir para página ${i+1}" data-i="${i}"></button>`).join('');
+$('#tot').textContent = String(SLIDES.length).padStart(2,'0');
+
+
+const slides = [...track.children], dots = [...dotsEl.children];
+let index = 0, start = 0, elapsed = 0, paused = false, raf;
+
+function go(n){
+  const prev = slides[index];
+  prev.classList.remove('is-active'); prev.classList.add('is-leaving');
+  setTimeout(()=>prev.classList.remove('is-leaving'), 600);
+  index = (n + slides.length) % slides.length;
+  slides[index].classList.add('is-active');
+  dots.forEach((d,i)=>d.classList.toggle('is-active', i===index));
+  $('#cur').textContent = String(index+1).padStart(2,'0');
+  elapsed = 0; start = performance.now();
+}
+
+function tick(now){
+  if (!paused){
+    const t = elapsed + (now - start);
+    bar.style.transform = `scaleX(${Math.min(t/DURATION,1)})`;
+    if (t >= DURATION) go(index+1);
+  }
+  raf = requestAnimationFrame(tick);
+}
+
+function setPaused(p){
+  if (p === paused) return;
+  if (p) elapsed += performance.now() - start; else start = performance.now();
+  paused = p;
+  $('#state').textContent = p ? 'pausado' : 'auto';
+}
+
+$('#next').onclick = () => go(index+1);
+$('#prev').onclick = () => go(index-1);
+dotsEl.onclick = e => { if (e.target.dataset.i) go(+e.target.dataset.i); };
+
+/* pausa enquanto o mouse está sobre o texto/cartão, para dar tempo de ler */
+track.addEventListener('mouseenter', ()=>setPaused(true));
+track.addEventListener('mouseleave', ()=>setPaused(false));
+document.addEventListener('visibilitychange', ()=>setPaused(document.hidden));
+document.addEventListener('keydown', e=>{
+  if (e.key==='ArrowRight') go(index+1);
+  if (e.key==='ArrowLeft') go(index-1);
+});
+
+/* swipe no celular */
+let tx = null;
+track.addEventListener('touchstart', e=>tx=e.touches[0].clientX, {passive:true});
+track.addEventListener('touchend', e=>{
+  if (tx===null) return;
+  const dx = e.changedTouches[0].clientX - tx;
+  if (Math.abs(dx) > 40) go(index + (dx<0?1:-1));
+  tx = null;
+});
+
+/* e-mail: copia o endereço além de abrir o cliente de e-mail */
+document.querySelectorAll('[data-copy]').forEach(a=>{
+  a.addEventListener('click', ()=>{
+    try{ navigator.clipboard.writeText(a.dataset.copy).then(()=>{
+      const t=$('#toast'); t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1800);
+    }).catch(()=>{}); }catch(_){}
+  });
+});
+
+/* relógio e ano */
+function clock(){ $('#clock').textContent = new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Recife'}); }
+clock(); setInterval(clock, 30000);
+$('#year').textContent = new Date().getFullYear();
+
+slides[0].classList.add('is-active'); dots[0].classList.add('is-active');
+start = performance.now(); raf = requestAnimationFrame(tick);
+</script>
+</body>
+</html>
